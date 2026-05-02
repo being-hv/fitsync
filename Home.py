@@ -20,6 +20,7 @@ def apply_theme(is_light_mode: bool) -> None:
         accent = "#0f172a"
         accent_soft = "rgba(15, 23, 42, 0.08)"
         hero_bg = "linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)"
+        mode_glow = "rgba(15, 23, 42, 0.10)"
     else:
         background = "#020617"
         surface = "rgba(15, 23, 42, 0.92)"
@@ -31,6 +32,7 @@ def apply_theme(is_light_mode: bool) -> None:
         accent = "#e2e8f0"
         accent_soft = "rgba(226, 232, 240, 0.08)"
         hero_bg = "linear-gradient(135deg, #0f172a 0%, #020617 100%)"
+        mode_glow = "rgba(56, 189, 248, 0.20)"
 
     st.markdown(
         f"""
@@ -38,6 +40,9 @@ def apply_theme(is_light_mode: bool) -> None:
             .stApp {{
                 background: {background};
                 color: {text};
+            }}
+            .stApp * {{
+                transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease, transform 180ms ease;
             }}
             .block-container {{
                 padding-top: 2rem;
@@ -49,6 +54,7 @@ def apply_theme(is_light_mode: bool) -> None:
                 border-radius: 28px;
                 padding: 2.5rem 2rem;
                 box-shadow: {shadow};
+                animation: fade-up 650ms ease-out both;
             }}
             .hero-pill {{
                 display: inline-flex;
@@ -61,6 +67,7 @@ def apply_theme(is_light_mode: bool) -> None:
                 color: {text};
                 font-size: 0.92rem;
                 letter-spacing: 0.02em;
+                box-shadow: 0 0 0 1px {mode_glow};
             }}
             .hero-title {{
                 font-size: clamp(2.4rem, 6vw, 4.8rem);
@@ -90,6 +97,7 @@ def apply_theme(is_light_mode: bool) -> None:
                 padding: 1.4rem;
                 box-shadow: {shadow};
                 height: 100%;
+                animation: fade-up 750ms ease-out both;
             }}
             .feature-title {{
                 color: {text};
@@ -111,6 +119,7 @@ def apply_theme(is_light_mode: bool) -> None:
                 border: 1px solid {border};
                 border-radius: 18px;
                 padding: 1rem 1.1rem;
+                animation: fade-up 850ms ease-out both;
             }}
             .metric-label {{
                 color: {muted};
@@ -143,6 +152,34 @@ def apply_theme(is_light_mode: bool) -> None:
                 transform: translateY(-1px);
                 opacity: 0.92;
             }}
+            .mode-chip {{
+                display: inline-flex;
+                align-items: center;
+                gap: 0.55rem;
+                margin-top: 1rem;
+                padding: 0.42rem 0.9rem;
+                border-radius: 999px;
+                border: 1px solid {border};
+                background: {surface_alt};
+                color: {text};
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            }}
+            .mode-selector [data-baseweb="select"] > div {{
+                background: {surface};
+                border-color: {border};
+                border-radius: 999px;
+                min-height: 2.8rem;
+            }}
+            .mode-selector label {{
+                color: {text};
+                font-weight: 700;
+            }}
+            @keyframes fade-up {{
+                from {{ opacity: 0; transform: translateY(14px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+            }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -155,12 +192,19 @@ if "light_mode" not in st.session_state:
 
 with st.sidebar:
     st.markdown("### Appearance")
-    st.session_state.light_mode = st.toggle(
-        "Light mode",
-        value=st.session_state.light_mode,
-        help="Switch between the black aesthetic and a clean light surface.",
+    mode_choice = st.select_slider(
+        "Theme mode",
+        options=["Dark Mode", "Light Mode"],
+        value="Light Mode" if st.session_state.light_mode else "Dark Mode",
+        help="Choose the active theme. The label always matches the current mode.",
     )
-    st.caption("Toggle the interface style without leaving the page.")
+    st.session_state.light_mode = mode_choice == "Light Mode"
+    current_mode_icon = "☀️" if st.session_state.light_mode else "🌙"
+    st.markdown(
+        f'<div class="mode-chip">{mode_choice}</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Switch between the two modes directly from the sidebar.")
 
 
 apply_theme(st.session_state.light_mode)
