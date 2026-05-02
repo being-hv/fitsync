@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from modules.processor import process_data
+from modules.theme import apply_theme, ensure_theme_state, get_theme_tokens
 
 
 # -------------------- PAGE CONFIG --------------------
@@ -15,30 +16,26 @@ st.set_page_config(
 
 
 # -------------------- CUSTOM STYLING --------------------
-st.markdown(
-    """
-    <style>
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-        h1, h2, h3, h4, .stMetricLabel, .stMetricValue {
+ensure_theme_state()
+theme = get_theme_tokens(st.session_state.light_mode)
+apply_theme(
+    st.session_state.light_mode,
+    extra_css=f"""
+        h1, h2, h3, h4, .stMetricLabel, .stMetricValue {{
             font-family: 'Segoe UI', sans-serif;
-        }
-        .subtitle {
-            color: #6b7280;
+        }}
+        .subtitle {{
+            color: {theme['muted']};
             text-align: center;
-        }
-        .dashboard-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
+        }}
+        .dashboard-card {{
+            background: {theme['surface']};
+            border: 1px solid {theme['border']};
             border-radius: 16px;
             padding: 1rem 1rem 0.5rem 1rem;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
-        }
-    </style>
+            box-shadow: {theme['shadow']};
+        }}
     """,
-    unsafe_allow_html=True,
 )
 
 
@@ -126,15 +123,19 @@ def build_time_series_figure(dataframe, x_col, y_columns, title, y_axis_title):
 
     figure.update_layout(
         title=title,
-        template="plotly_white",
+        template=theme["plotly_template"],
+        paper_bgcolor=theme["surface"],
+        plot_bgcolor=theme["surface_alt"],
+        font=dict(color=theme["text"]),
+        legend=dict(font=dict(color=theme["text"])),
         margin=dict(l=20, r=20, t=60, b=20),
         height=380,
         legend_title_text="Metric",
         xaxis_title="Date",
         yaxis_title=y_axis_title,
     )
-    figure.update_xaxes(showgrid=False)
-    figure.update_yaxes(gridcolor="#e5e7eb")
+    figure.update_xaxes(showgrid=False, tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
+    figure.update_yaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
     return figure
 
 
@@ -159,14 +160,18 @@ def build_scatter_figure(dataframe, x_col, y_col, title, x_title, y_title, color
 
     figure.update_traces(marker=dict(size=10, opacity=0.85, line=dict(width=0.5, color="white")))
     figure.update_layout(
-        template="plotly_white",
+        template=theme["plotly_template"],
+        paper_bgcolor=theme["surface"],
+        plot_bgcolor=theme["surface_alt"],
+        font=dict(color=theme["text"]),
+        legend=dict(font=dict(color=theme["text"])),
         height=380,
         margin=dict(l=20, r=20, t=60, b=20),
     )
     if color_col:
         figure.update_layout(coloraxis_colorbar=dict(title=color_col.replace("_", " ")))
-    figure.update_xaxes(gridcolor="#e5e7eb")
-    figure.update_yaxes(gridcolor="#e5e7eb")
+    figure.update_xaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
+    figure.update_yaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
     return figure
 
 
@@ -271,8 +276,8 @@ st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 
 st.markdown(
-    """
-    <div style="text-align:center; color:#6b7280;">
+    f"""
+    <div style="text-align:center; color:{theme['muted']};">
         Built by Harshvardhanam <br>
         <b>FitSync</b> © 2026
     </div>
