@@ -3,6 +3,7 @@ import plotly.express as px
 import streamlit as st
 
 from modules.processor import process_data
+from modules.theme import apply_theme, ensure_theme_state, get_theme_tokens
 
 
 # -------------------- PAGE CONFIG --------------------
@@ -14,30 +15,26 @@ st.set_page_config(
 
 
 # -------------------- CUSTOM STYLING --------------------
-st.markdown(
-	"""
-	<style>
-		.block-container {
-			padding-top: 2rem;
-			padding-bottom: 2rem;
-		}
-		h1, h2, h3, h4, .stMetricLabel, .stMetricValue {
+ensure_theme_state()
+theme = get_theme_tokens(st.session_state.light_mode)
+apply_theme(
+	st.session_state.light_mode,
+	extra_css=f"""
+		h1, h2, h3, h4, .stMetricLabel, .stMetricValue {{
 			font-family: 'Segoe UI', sans-serif;
-		}
-		.subtitle {
-			color: #6b7280;
+		}}
+		.subtitle {{
+			color: {theme['muted']};
 			text-align: center;
-		}
-		.insights-card {
-			background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-			border: 1px solid #e5e7eb;
+		}}
+		.insights-card {{
+			background: linear-gradient(180deg, {theme['surface']} 0%, {theme['surface_alt']} 100%);
+			border: 1px solid {theme['border']};
 			border-radius: 18px;
 			padding: 1rem;
-			box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-		}
-	</style>
+			box-shadow: {theme['shadow']};
+		}}
 	""",
-	unsafe_allow_html=True,
 )
 
 
@@ -116,15 +113,19 @@ def build_histogram(dataframe, column_name, title, x_title):
 	)
 	figure.update_traces(marker_line_color="#ffffff", marker_line_width=1.2)
 	figure.update_layout(
-		template="plotly_white",
+		template=theme["plotly_template"],
+		paper_bgcolor=theme["surface"],
+		plot_bgcolor=theme["surface_alt"],
+		font=dict(color=theme["text"]),
+		legend=dict(font=dict(color=theme["text"])),
 		height=320,
 		margin=dict(l=20, r=20, t=60, b=20),
 		bargap=0.08,
 		xaxis_title=x_title,
 		yaxis_title="Count",
 	)
-	figure.update_xaxes(gridcolor="#e5e7eb")
-	figure.update_yaxes(gridcolor="#e5e7eb")
+	figure.update_xaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
+	figure.update_yaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
 	return figure
 
 
@@ -143,14 +144,18 @@ def build_monthly_recovery_figure(dataframe, date_column, recovery_column):
 	)
 	figure.update_traces(line=dict(width=3, color="#2563eb"), marker=dict(size=8))
 	figure.update_layout(
-		template="plotly_white",
+		template=theme["plotly_template"],
+		paper_bgcolor=theme["surface"],
+		plot_bgcolor=theme["surface_alt"],
+		font=dict(color=theme["text"]),
+		legend=dict(font=dict(color=theme["text"])),
 		height=360,
 		margin=dict(l=20, r=20, t=60, b=20),
 		xaxis_title="Month",
 		yaxis_title="Average Recovery Score",
 	)
-	figure.update_xaxes(gridcolor="#e5e7eb")
-	figure.update_yaxes(gridcolor="#e5e7eb")
+	figure.update_xaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
+	figure.update_yaxes(gridcolor=theme["grid"], tickfont=dict(color=theme["text"]), title_font=dict(color=theme["text"]))
 	return figure
 
 
@@ -172,6 +177,35 @@ def build_summary_table(dataframe, columns):
 	return pd.DataFrame(rows)
 
 
+def render_summary_table(dataframe):
+	st.markdown(
+		f"""
+		<div style="overflow-x:auto;">
+			<table style="width:100%; border-collapse: collapse; color:{theme['text']};">
+				<thead>
+					<tr>
+						<th style="text-align:left; padding:0.8rem; border-bottom:1px solid {theme['border']};">Metric</th>
+						<th style="text-align:left; padding:0.8rem; border-bottom:1px solid {theme['border']};">Mean</th>
+						<th style="text-align:left; padding:0.8rem; border-bottom:1px solid {theme['border']};">Min</th>
+						<th style="text-align:left; padding:0.8rem; border-bottom:1px solid {theme['border']};">Max</th>
+					</tr>
+				</thead>
+				<tbody>
+					{''.join(
+						f'<tr><td style="padding:0.75rem 0.8rem; border-bottom:1px solid {theme["border"]};">{row.Metric}</td>'
+						f'<td style="padding:0.75rem 0.8rem; border-bottom:1px solid {theme["border"]};">{row.Mean if pd.notna(row.Mean) else "N/A"}</td>'
+						f'<td style="padding:0.75rem 0.8rem; border-bottom:1px solid {theme["border"]};">{row.Min if pd.notna(row.Min) else "N/A"}</td>'
+						f'<td style="padding:0.75rem 0.8rem; border-bottom:1px solid {theme["border"]};">{row.Max if pd.notna(row.Max) else "N/A"}</td></tr>'
+						for row in dataframe.itertuples(index=False)
+					)}
+				</tbody>
+			</table>
+		</div>
+		""",
+		unsafe_allow_html=True,
+	)
+
+
 # -------------------- SUMMARY STATISTICS --------------------
 st.markdown('<div class="insights-card">', unsafe_allow_html=True)
 st.subheader("Summary Statistics")
@@ -184,7 +218,7 @@ summary_columns = [
 ]
 
 stats_df = build_summary_table(filtered_df, summary_columns)
-st.dataframe(stats_df, use_container_width=True, hide_index=True)
+render_summary_table(stats_df)
 st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -227,11 +261,11 @@ for container, (label, column_name, chart_title) in zip(histogram_columns, histo
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
-    """
-    <div style="text-align:center; color:#6b7280;">
+	f"""
+	<div style="text-align:center; color:{theme['muted']};">
         Built by Harshvardhanam <br>
         <b>FitSync</b> © 2026
     </div>
     """,
-    unsafe_allow_html=True,
+	unsafe_allow_html=True,
 )
